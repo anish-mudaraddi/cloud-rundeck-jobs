@@ -83,11 +83,17 @@ rabbit_config:
     exchange_type:
       description: "exchange type - direct, fanout etc)"
       type: string
+      required: true #give this a default? or make it optional if my code dosent use ex_types 
+      default: "direct" 
+    exchange_durable:
+      description: "Survive a reboot of RabbitMQ"
+      type: string
       required: true
+      default: False  #might need to be in quotations or use a lower case "f"
     routing_key:
       description: "rabbit mq routing key"
       type: "string"
-      required: true
+      required: true   #ral.info?
     deserialization_method:
       description: "Method used to deserialize body, default is no deserialization"
       type: "string"

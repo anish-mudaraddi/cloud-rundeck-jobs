@@ -1,0 +1,11 @@
+---
+description: Create AQ machine and update metadata in OpenStack
+runner_type: "python-script"
+enabled: true
+entry_point: instance_create.py
+name: instance.create
+parameters:
+  message:
+    type: "object"
+    description: Contents of the message recieved from OpenStack
+    required: true

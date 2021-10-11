@@ -1,0 +1,63 @@
+---
+aquilon:
+  description: "Aquilon connection settings"
+  type: "object"
+  required: true
+  additionalProperties: true
+  properties:
+    default_archetype:
+      type: "string"
+      required: true
+    default_domain:
+      type: "string"
+      required: true
+    default_personality:
+      type: "string"
+      required: true
+    prefix:
+      type: "string"
+      required: true
+    url:
+      type: "string"
+      required: true    
+keberos:
+  description: "Keberos connection settings"
+  type: "object"
+  required: true
+  additionalProperties: true
+  properties:
+    suffix:
+      type: "string"
+      required: true
+openstack:
+  description: "Openstack connection settings"
+  type: "object"
+  required: true
+  additionalProperties: true
+  properties:
+    auth_url:
+      type: "string"
+      required: true
+    cacert:
+      type: "string"
+      required: true
+      secret: true ## necessary?
+    compute_url:
+      type: "string"
+      required: true
+    domain:
+      type: "string"
+      required: true
+    identity_url:
+      type: "string"
+      required: true
+    password:
+      type: "string"
+      required: true
+      secret: true
+    project_id:
+      type: "string"
+      required: true
+    username:
+      type: "string"
+      required: true

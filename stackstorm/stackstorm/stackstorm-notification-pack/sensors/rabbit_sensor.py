@@ -19,6 +19,7 @@ class RabbitSensor(Sensor):
         self.username = self._config["rabbit_config"]["username"]
         self.password = self._config["rabbit_config"]["password"]
         self.exchange = self._config["rabbit_config"]["exchange"]
+        self.exchange_type = self._config["rabbit_config"]["exchange_type"]
         self.exchange_durable = self._config["rabbit_config"]["exchange_durable"]
         self.routing_key = self._config["rabbit_config"]["routing_key"]
 
@@ -35,7 +36,35 @@ class RabbitSensor(Sensor):
     def cleanup(self):
         if self.conn:
             self.conn.close()
+            
+    def is_aq_message(message):
+    """
+    Check to see if the metadata in the message contains entries that suggest it
+    is for an Aquilon VM.
+    """
+        logger.debug("Payload meta: %s" % message.get("payload").get("metadata"))
 
+        metadata = message.get("payload").get("metadata")
+        if metadata:
+            if set(metadata.keys()).intersection(['AQ_DOMAIN', 'AQ_SANDBOX', 'AQ_OSVERSION', 'AQ_PERSONALITY', 'AQ_ARCHETYPE', 'AQ_OS']):
+                return True
+        if metadata:
+            if set(metadata.keys()).intersection(['aq_domain', 'aq_sandbox', 'aq_osversion', 'aq_personality', 'aq_archetype', 'aq_os']):
+                return True
+        metadata = message.get("payload").get("image_meta")
+
+        logger.debug("Image meta: %s" % message.get("payload").get("image_meta"))
+
+        if metadata:
+            if set(metadata.keys()).intersection(['AQ_DOMAIN', 'AQ_SANDBOX', 'AQ_OSVERSION', 'AQ_PERSONALITY', 'AQ_ARCHETYPE', 'AQ_OS']):
+                return True
+        if metadata:
+            if set(metadata.keys()).intersection(['aq_domain', 'aq_sandbox', 'aq_osversion', 'aq_personality', 'aq_archetype', 'aq_os']):
+                return True
+
+        return False
+
+    
     def on_callback(self, ch, method, properties, body):
         body = json.loads(body.decode())
 
@@ -46,30 +75,55 @@ class RabbitSensor(Sensor):
             return
         self._logger.info("[X] Received message {0}".format(body))
 
-        if body["metadata"]["reply_required"]:
+        try:    
+            if body["metadata"]["reply_required"]:
 
-            payload = {
-                "routing_key": properties.reply_to,
-                "message_type": body["metadata"]["message_type"],
-                "args": body["message"]
-            }
+                payload = {
+                    "routing_key": properties.reply_to,
+                    "message_type": body["metadata"]["message_type"],
+                    "args": body["message"]
+                }
 
-            try:
-                self._sensor_service.dispatch(trigger="stackstorm_send_notifications.rabbit_reply_message", payload=payload)
-            finally:
-                self.channel.basic_ack(delivery_tag=method.delivery_tag)
-        else:
+                try:
+                    self._sensor_service.dispatch(trigger="stackstorm_send_notifications.rabbit_reply_message", payload=payload)
+                finally:
+                    self.channel.basic_ack(delivery_tag=method.delivery_tag)
+        
+            if body["oslo.message"]:  ## not clear on this and if this is actually a defining characteristic of the desired messages
+            
+                message = json.loads(body["oslo.message"])
+            
+                if is_aq_message(message):  ##should maybe check to see if the event_type of message is one of the two desired also here?
+                
+                    event = message.get("event_type")
+                
+                    payload = {
+                        "event_type": event,
+                        "message": message
+                    }
+                
+                    try:
+                        self._sensor_service.dispatch(trigger="stackstorm_send_notifications.aq_message", payload=payload)
+                    finally:
+                        self.channel.basic_ack(delivery_tag=method.delivery_tag)
+                        
+            else:
 
-            payload = {
-                "message_type": body["metadata"]["message_type"],
-                "args": body["message"]
-            }
+                payload = {
+                    "message_type": body["metadata"]["message_type"],
+                    "args": body["message"]
+                }
 
-            try:
-                self._sensor_service.dispatch(trigger="stackstorm_send_notifications.rabbit_message",
+                try:
+                    self._sensor_service.dispatch(trigger="stackstorm_send_notifications.rabbit_message",
                                               payload=payload)
-            finally:
-                self.channel.basic_ack(delivery_tag=method.delivery_tag)
+                finally:
+                    self.channel.basic_ack(delivery_tag=method.delivery_tag)
+        
+        except Exception as e:
+            logger.error("Something went wrong parsing the message: %s", e)
+            logger.error(str(message))
+
 
 
     def setup(self):
@@ -99,7 +153,8 @@ class RabbitSensor(Sensor):
         # setup exchange
         self.channel.exchange_declare(
             exchange=self.exchange,
-            exchange_type=ExchangeType.direct,
+            #exchange_type=ExchangeType.direct,
+            exchange_type=self.exchange_type,
             passive=False,
             durable=self.exchange_durable,
             auto_delete=False

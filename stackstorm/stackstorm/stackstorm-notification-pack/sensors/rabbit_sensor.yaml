@@ -25,3 +25,13 @@ trigger_types:
           type: "string"
         args:
           type: "object"
+  -
+    name: "aq_message"
+    description: "Trigger which indicates that a new AQ configure msg has arrived"
+    payload_schema:
+      type: "object"
+      properties:
+        event_type:
+          type: "string"
+        message:
+          type: "object"

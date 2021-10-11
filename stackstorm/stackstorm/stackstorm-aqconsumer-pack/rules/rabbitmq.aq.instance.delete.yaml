@@ -1,0 +1,17 @@
+---
+name: "rabbitmq.aq.instance.delete"
+pack: "stackstorm_aqconsumer" 
+description: "???"
+enabled: true
+trigger:
+    type: stackstorm_send_notifications.aq_message
+
+criteria:
+    trigger.event_type:
+        type: "iequals"
+        pattern: "compute.instance.delete.start"
+
+action: ##not done yet
+    ref: stackstorm_aqconsumer.instance.delete
+    parameters:
+        message: "{{ trigger.message }}"

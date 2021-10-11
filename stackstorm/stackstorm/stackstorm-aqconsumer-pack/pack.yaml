@@ -1,0 +1,21 @@
+---
+ref: stackstorm_aqconsumer
+
+name: StackStorm AQ consumer Scripts
+
+description: Pack containing aq consumer scripts
+
+keywords:
+  - aqconsumer
+
+version: 1.0.0
+
+python_versions:
+  - "3"
+
+dependencies:
+  - core
+
+author: Anish Mudaraddi
+
+email: anish.mudaraddi@stfc.ac.uk
